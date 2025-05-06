@@ -11,6 +11,10 @@ module "authorizer" {
   handler       = "main.lambda_handler"
   runtime       = "python3.12"
   source_path   = "${path.root}/lambdas/authorizer/${each.key}"
+
+  trusted_entities = [
+    "apigateway.amazonaws.com",
+  ]
 }
 
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_authorizer
