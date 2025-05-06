@@ -24,6 +24,7 @@ def lambda_handler(event, context):
 
         # Add the new item to the DynamoDB table
         item = {
+            'flag': event.get('stageVariables').get('flag'),
             'uuid': item_uuid,  
             'name': name,
             'timestamp': timestamp
