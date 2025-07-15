@@ -78,7 +78,8 @@ TOKEN=...
 aws apigateway test-invoke-authorizer \
    --rest-api-id $API_ID \
    --authorizer-id $AUTH_ID \
-   --headers authToken="$TOKEN"
+   --headers authToken="$TOKEN" |
+jq '.policy|fromjson'
 ```
 
 # Test API Gateway
