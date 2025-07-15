@@ -27,7 +27,7 @@ module "lambda" {
   handler       = "main.lambda_handler"
   policy        = aws_iam_policy.this[each.key].arn
   runtime       = "python3.12"
-  source_path   = "${path.root}/lambdas/${each.key}"
+  source_path   = "${path.root}/code/${each.key}"
 
   environment_variables = {
     DYNAMODB_TABLE = module.dynamodb.dynamodb_table_id
