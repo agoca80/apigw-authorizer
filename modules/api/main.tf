@@ -22,6 +22,18 @@ locals {
   resources = distinct([for name, method in var.api : method.resource])
 }
 
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_authorizer
+resource "aws_api_gateway_authorizer" "this" {
+  # authorizer_credentials = aws_iam_role.this.arn
+  authorizer_uri = var.authorizer.lambda_arn
+  rest_api_id    = aws_api_gateway_rest_api.this.id
+  name           = var.api_name
+
+  authorizer_result_ttl_in_seconds = var.authorizer.result_ttl_in_seconds
+  identity_source                  = var.authorizer.identity_source
+  type                             = var.authorizer.type
+}
+
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/api_gateway_rest_api
 resource "aws_api_gateway_rest_api" "this" {
   name = var.api_name
@@ -72,9 +84,12 @@ resource "aws_api_gateway_domain_name" "this" {
 
 output "setup" {
   value = {
-    authorizer_id        = { for name, authorizer in aws_api_gateway_authorizer.this : name => authorizer.id }
     resource_id          = { for name, resource in aws_api_gateway_resource.this : name => resource.id }
     rest_api_domain_name = aws_api_gateway_domain_name.this.domain_name
     rest_api_id          = aws_api_gateway_rest_api.this.id
   }
+}
+
+output "authorizer_id" {
+  value = aws_api_gateway_authorizer.this.id
 }

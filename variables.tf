@@ -1,39 +1,11 @@
-variable "api" {
-  default = {
-    "document_read" = {
-      lambda      = "read"
-      http_method = "GET"
-      resource    = "documents"
-    }
+variable "audience" {
+  default = "api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538"
+  type    = string
+}
 
-    "document_create" = {
-      authorizer  = "jwt"
-      lambda      = "create"
-      http_method = "POST"
-      resource    = "documents"
-    }
-
-    # "document_delete" = {
-    #   lambda      = "delete"
-    #   http_method = "DELETE"
-    #   resource    = "documents"
-    # }
-
-
-    # "document_update" = {
-    #   lambda      = "update"
-    #   http_method = "PUT"
-    #   resource    = "documents"
-    # }
-  }
-  description = "The API Gateway configuration."
-
-  type = map(object({
-    authorizer  = optional(string, "")
-    lambda      = string
-    http_method = string
-    resource    = string
-  }))
+variable "tenant_id" {
+  default = "b2c9c85a-71f3-48a1-8311-e106f47ff3f8"
+  type    = string
 }
 
 variable "hosted_zone_id" {
@@ -104,43 +76,4 @@ variable "tags" {
     Owner       = "antxon.gonzalez@clarivate.com"
     Experiment  = "api-gateway"
   }
-}
-
-variable "authorizers" {
-  default = {
-    token = {
-      identity_source       = "method.request.header.authToken"
-      result_ttl_in_seconds = 300
-      type                  = "TOKEN"
-    }
-
-    request = {
-      identity_source       = "method.request.header.HeaderAuth1,method.request.querystring.QueryString1,stageVariables.StageVar1"
-      result_ttl_in_seconds = 0
-      type                  = "REQUEST"
-    }
-
-    # Cognito authorizers require a list of provider ARNs
-    # cognito = {
-    #   type = "COGNITO_USER_POOLS"
-    # }
-
-    jwt = {
-      identity_source       = "method.request.header.authToken"
-      result_ttl_in_seconds = 300
-      type                  = "TOKEN"
-      environment = {
-        "AUDIENCE"  = "api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538"
-        "TENANT_ID" = "b2c9c85a-71f3-48a1-8311-e106f47ff3f8"
-      }
-    }
-  }
-
-  type = map(object({
-    result_ttl_in_seconds = number
-    identity_source       = optional(string)
-    type                  = string
-
-    environment = optional(map(string), {})
-  }))
 }

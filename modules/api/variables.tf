@@ -1,8 +1,4 @@
 variable "api" {}
 variable "api_name" {}
-
-variable "authorizers" {
-  type = map(any)
-}
-
+variable "authorizer" {}
 variable "hosted_zone_id" {}

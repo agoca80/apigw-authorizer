@@ -1,21 +1,17 @@
-locals {
-  lambdas = toset([for name, method in var.api : method.lambda])
-}
-
 resource "aws_iam_policy" "this" {
-  for_each = local.lambdas
+  for_each = local.api
 
   description = "${each.key} IAM policy"
-  name        = format(local.name_fmt, "lambda-${each.key}")
+  name        = format(local.name_fmt, each.key)
 
-  policy = templatefile("iam/policies/lambda_${each.key}.json", {
+  policy = templatefile("iam/policies/${each.key}.json", {
     table = module.dynamodb.dynamodb_table_arn
   })
 }
 
 # https://registry.terraform.io/modules/terraform-aws-modules/lambda/aws/7.20.1
 module "lambda" {
-  for_each = local.lambdas
+  for_each = local.api
 
   source  = "terraform-aws-modules/lambda/aws"
   version = "7.20.1"
@@ -42,7 +38,7 @@ module "lambda" {
   # source_arn example: arn:aws:execute-api:REGION:ACCOUNT_ID:API_ID/*/GET/RESOURCE"
   # Do not use credentials on aws_api_gateway_integration while using triggers with AWS_PROXY integrations!!!
   allowed_triggers = {
-    for name, method in var.api : "${name}" => {
+    for name, method in local.api : "${name}" => {
       service      = "apigateway"
       statement_id = "${name}-"
       source_arn   = "arn:aws:execute-api:${local.region}:${local.account_id}:${local.rest_api_id}/*/${method.http_method}/${method.resource}"
