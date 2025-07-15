@@ -5,7 +5,6 @@
 - https://docs.aws.amazon.com/apigateway/latest/developerguide/private-api-tutorial.html
 - https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-basic-concept.html
 
-
 # Lambda authorizers
 
 - https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html
@@ -19,6 +18,7 @@
 
 - https://repost.aws/questions/QU1Mc0g0X6RR-qJ93SUL8Dqw/implementing-saml-based-login-and-api-authorization-with-api-gateway-lambda-authorizer-and-microsoft-idp
 - https://repost.aws/knowledge-center/cognito-third-party-saml-idp
+- https://aws.amazon.com/blogs/modernizing-with-aws/secure-api-authorization-in-amazon-api-gateway-using-microsoft-entra-id/
 
 # Notes
  
@@ -37,37 +37,57 @@ A stage is a named reference to a deployment, which is a snapshot of the API. Yo
  
 https://docs.aws.amazon.com/apigateway/latest/developerguide/aws-api-gateway-stage-variables-reference.html
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
- 
-## Test an API Gateway lambda authorizer from CLI
+
+
+# Authorizer dependencies
+
+The lambda authorizer has dependencies that are downloaded in local by terraform before uploading the lambda code to AWS. To achieve this, the lambda module runs pip in local. Because of this, you must ensure pip will download the dependencies for the lambda environment, and not for the local environment. This happens when you run terraform in an Apple Silicon platform, but the lambda runs in a Graviton (AWS ARM) platform. An easy way to achieve this is by confgirung the following environment variables before running the terraform commands:
 
 ```
-API_ID=ixya3v4yaj
+export PIP_ONLY_BINARY=:all:
+export PIP_PLATFORM=manylinux2014_aarch64
+```
 
-: Test request authorizer
-AUTH_ID=ok9mfq
+This will instruct pip which versions should download before packing and uploading them to the lambda service.
+
+Reference link: https://repost.aws/knowledge-center/lambda-python-package-compatible
+
+# Get a JWT token from Microsoft Entra ID
+
+```
+CLIENT_SECRET="..."
+CLIENT_ID=cdcef3b4-0d1e-4c20-86c1-b51b49f7fc4f
+TENANT_ID=b2c9c85a-71f3-48a1-8311-e106f47ff3f8
+AUDIENCE=api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538
+
+curl -vXPOST https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token \
+  -d "client_id=$CLIENT_ID" \
+  -d "client_secret=$CLIENT_SECRET" \
+  -d "scope=$AUDIENCE/.default" \
+  -d "grant_type=client_credentials" |
+jq -r .access_token
+```
+
+## Test token lambda authorizer from CLI
+
+```
+API_ID=g8eg7rzpch
+AUTH_ID=x8iv8v
+TOKEN=...
+
 aws apigateway test-invoke-authorizer \
    --rest-api-id $API_ID \
    --authorizer-id $AUTH_ID \
-   --headers HeaderAuth1=headerValue1 \
-   --path-with-query-string "/?QueryString1=queryValue1" \
-   --stage-variables StageVar1=stageValue1 | jq .
-
-: Test token authorizer
-AUTH_ID=0cxiiy
-aws apigateway test-invoke-authorizer \
-   --rest-api-id $API_ID \
-   --authorizer-id $AUTH_ID \
-   --headers authToken=allow
+   --headers authToken="$TOKEN"
 ```
 
 # Test API Gateway
 
 ```
-curl -XPOST -H "authToken: alloww" https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"pepe"}'
+TOKEN=...
+
+curl https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents
+
+curl -XPOST -H "authToken: $TOKEN" https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"pepe"}'
+
 ```
-
-# Terraform module
-
-This module only supports HTTP and websockets based APIs.
-
-https://registry.terraform.io/modules/terraform-aws-modules/apigateway-v2/aws/latest

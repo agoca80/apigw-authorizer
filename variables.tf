@@ -7,7 +7,7 @@ variable "api" {
     }
 
     "document_create" = {
-      authorizer  = "token"
+      authorizer  = "jwt"
       lambda      = "create"
       http_method = "POST"
       resource    = "documents"
@@ -108,7 +108,6 @@ variable "tags" {
 
 variable "authorizers" {
   default = {
-
     token = {
       identity_source       = "method.request.header.authToken"
       result_ttl_in_seconds = 300
@@ -125,12 +124,23 @@ variable "authorizers" {
     # cognito = {
     #   type = "COGNITO_USER_POOLS"
     # }
+
+    jwt = {
+      identity_source       = "method.request.header.authToken"
+      result_ttl_in_seconds = 300
+      type                  = "TOKEN"
+      environment = {
+        "AUDIENCE"  = "api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538"
+        "TENANT_ID" = "b2c9c85a-71f3-48a1-8311-e106f47ff3f8"
+      }
+    }
   }
 
   type = map(object({
     result_ttl_in_seconds = number
     identity_source       = optional(string)
     type                  = string
+
+    environment = optional(map(string), {})
   }))
 }
-

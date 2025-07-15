@@ -12,6 +12,8 @@ module "authorizer" {
   runtime       = "python3.12"
   source_path   = "${path.root}/code/authorizer/${each.key}"
 
+  environment_variables = each.value.environment
+
   trusted_entities = [
     "apigateway.amazonaws.com",
   ]
