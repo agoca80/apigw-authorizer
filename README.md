@@ -55,25 +55,28 @@ Reference link: https://repost.aws/knowledge-center/lambda-python-package-compat
 # Get a JWT token from Microsoft Entra ID
 
 ```
-CLIENT_SECRET="..."
-CLIENT_ID=cdcef3b4-0d1e-4c20-86c1-b51b49f7fc4f
+CLIENT_SECRET=$(cat venv/secret)
+CLIENT_ID=3e5d5615-9af4-446a-816b-95676db5ce36
 TENANT_ID=b2c9c85a-71f3-48a1-8311-e106f47ff3f8
-AUDIENCE=api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538
+AUDIENCE=api://97a9f0a2-9ef0-4088-9b76-f7144813e6e3
 
-curl -vXPOST https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token \
-  -d "client_id=$CLIENT_ID" \
-  -d "client_secret=$CLIENT_SECRET" \
-  -d "scope=$AUDIENCE/.default" \
-  -d "grant_type=client_credentials" |
-jq -r .access_token
+TOKEN=$(
+  curl -sXPOST https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token \
+    -d "client_id=$CLIENT_ID" \
+    -d "client_secret=$CLIENT_SECRET" \
+    -d "scope=$AUDIENCE/.default" \
+    -d "grant_type=client_credentials" |
+  jq -r .access_token
+)
+
+echo $TOKEN | jq -R 'split(".") | .[0],.[1] | @base64d | fromjson'
 ```
 
 ## Test token lambda authorizer from CLI
 
 ```
 API_ID=g8eg7rzpch
-AUTH_ID=x8iv8v
-TOKEN=...
+AUTH_ID=zupghl
 
 aws apigateway test-invoke-authorizer \
    --rest-api-id $API_ID \
@@ -85,11 +88,10 @@ jq '.policy|fromjson'
 # Test API Gateway
 
 ```
-TOKEN=...
-
-curl https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents
-
-
-curl -XPOST -H "authToken: $TOKEN" https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"pepe"}'
-
+reset
+curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
+curl -sXPOST https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"foo"}' | jq .
+curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
+curl -sXPOST https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"foo"}' -H "authToken: $TOKEN" | jq .
+curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
 ```

@@ -1,5 +1,5 @@
 variable "audience" {
-  default = "api://9ca5f6b2-4ad1-438c-87fe-06432bc1c538"
+  default = "api://97a9f0a2-9ef0-4088-9b76-f7144813e6e3"
   type    = string
 }
 
