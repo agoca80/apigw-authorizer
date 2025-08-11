@@ -1,14 +1,3 @@
-resource "aws_iam_policy" "this" {
-  for_each = local.api
-
-  description = "${each.key} IAM policy"
-  name        = format(local.name_fmt, each.key)
-
-  policy = templatefile("iam/policies/${each.key}.json", {
-    table = module.dynamodb.dynamodb_table_arn
-  })
-}
-
 # https://registry.terraform.io/modules/terraform-aws-modules/lambda/aws/7.20.1
 module "lambda" {
   for_each = local.api
@@ -18,10 +7,10 @@ module "lambda" {
 
   architectures = ["arm64"]
   attach_policy = true
-  description   = format("%s lambda for %s", each.key, var.name)
-  function_name = format(local.name_fmt, each.key)
+  description   = format("%s lambda for %s", each.key, local.name)
+  function_name = format(local.fmt_name, each.key)
   handler       = "main.lambda_handler"
-  policy        = aws_iam_policy.this[each.key].arn
+  policy        = aws_iam_policy.lambda.arn
   runtime       = "python3.12"
   source_path   = "${path.root}/code/${each.key}"
 

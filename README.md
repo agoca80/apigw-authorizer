@@ -75,23 +75,75 @@ echo $TOKEN | jq -R 'split(".") | .[0],.[1] | @base64d | fromjson'
 ## Test token lambda authorizer from CLI
 
 ```
-API_ID=g8eg7rzpch
-AUTH_ID=zupghl
+API_ID=$(terraform output -raw api_id)
+AUTH_ID=$(terraform output -raw authorizer_id)
 
-aws apigateway test-invoke-authorizer \
-   --rest-api-id $API_ID \
-   --authorizer-id $AUTH_ID \
-   --headers authToken="$TOKEN" |
-jq '.policy|fromjson'
+TEST=$(
+  aws apigateway test-invoke-authorizer \
+    --rest-api-id $API_ID \
+    --authorizer-id $AUTH_ID \
+    --headers authToken="$TOKEN"
+)
+
+echo $TEST
+echo $TEST | jq '.policy|fromjson'
 ```
 
 # Test API Gateway
 
 ```
 reset
-curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
-curl -sXPOST https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"foo"}' | jq .
-curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
-curl -sXPOST https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents -d '{"name":"foo"}' -H "authToken: $TOKEN" | jq .
-curl -sXGET  https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/documents | jq '.items|length'
+DATA='{"name":"foo"}'
+AUTH="authToken: $TOKEN"
+ENDPOINT=https://agc-c0f4.dev.cpa-devops.aws.clarivate.net/dev/document
+curl -sXGET  $ENDPOINT                   | jq '.items|length'
+curl -sXPOST $ENDPOINT -d $DATA          | jq .
+curl -sXGET  $ENDPOINT                   | jq '.items|length'
+curl -sXPOST $ENDPOINT -d $DATA -H $AUTH | jq .
+curl -sXGET  $ENDPOINT                   | jq '.items|length'
+```
+
+# Ping federate
+
+```
+IPP_URL=...
+CLIENT_ID=...
+CLIENT_SECRET=...
+GRANT_TYPE=urn:pingidentity.com:oauth2:grant_type:validate_bearer
+
+source venv/variables
+
+TOKEN=$(
+    curl -X POST "$IPP_URL" \
+        -u "$CLIENT_ID:$CLIENT_SECRET" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=client_credentials" \
+        -d "scope=api_client" |
+    jq -r .access_token
+)
+
+echo $TOKEN
+
+curl -sXPOST "$IPP_URL" \
+  -u "$CLIENT_ID:$CLIENT_SECRET" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=$GRANT_TYPE" \
+  -d "token=$TOKEN"
+
+aws logs tail /aws/lambda/agc-c0f4-ping --follow &
+
+API_ID=$(terraform output -raw api_id)
+AUTH_ID=$(terraform output -raw authorizer_id)
+
+TEST=$(
+  aws apigateway test-invoke-authorizer \
+    --rest-api-id $API_ID \
+    --authorizer-id $AUTH_ID \
+    --headers authToken="$TOKEN"
+)
+
+echo $TEST
+
+echo $TEST | jq '.policy|fromjson'
+
 ```

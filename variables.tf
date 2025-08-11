@@ -14,55 +14,23 @@ variable "hosted_zone_id" {
   type        = string
 }
 
-variable "name" {
-  default     = "agc-c0f4"
-  description = "The prefix for the name of all AWS resources."
-  type        = string
-}
-
-variable "stages" {
-  default = {
-    dev = {
-      base_path        = "dev"
-      allow_by_default = true
-
-      variables = {
-        "path"  = "/dev"
-        "stage" = "dev"
-        "flag"  = "foo"
-
-        "StageVar1" = "stageValue1"
-      }
-    }
-
-
-    prod = {
-      base_path        = null
-      allow_by_default = false
-      disabled         = true
-
-      variables = {
-        "path"  = "/"
-        "stage" = "prod"
-        "flag"  = "bar"
-
-        "StageVar1" = "stageValue1"
-      }
-    }
-  }
-
-  type = map(object({
-    base_path        = optional(string)
-    allow_by_default = optional(bool)
-    disabled         = optional(bool)
-    variables        = map(string)
-  }))
-}
-
 variable "log_retention_in_days" {
   description = "The number of days to retain logs in CloudWatch."
   type        = number
   default     = 1
+}
+
+variable "ping_url" {
+  description = "The URL for the Ping Federate server."
+  type        = string
+  default     = "https://sso-staging.ipplatform.com/as/token.oauth2"
+}
+
+variable "ping_client_id" {
+  default = "IppArgosDVHIntegrationDev"
+}
+
+variable "ping_client_secret" {
 }
 
 variable "tags" {
